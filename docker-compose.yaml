@@ -1,0 +1,77 @@
+version: "3.9"
+
+x-default-logging: &default-logging
+  options:
+    max-size: '10m'
+    max-file: '3'
+  driver: json-file
+
+services:
+
+  auth_service_db:
+    image: postgres:15.3
+    container_name: auth_service_db
+    env_file:
+      - auth-service/env/.env
+    logging: *default-logging
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+
+
+  redis_db:
+    image: redis:latest
+    container_name: redis
+    restart: always
+    logging: *default-logging
+
+  auth_service_app:
+    build: ./auth-service/app
+    image: auth_service_image
+    container_name: auth_service_app
+    volumes:
+      - auth_service_app_data:/home/data
+      - ./auth-service/app/src:/home/src
+    env_file:
+      - auth-service/env/.env
+    links:
+      - auth_service_db
+
+  auth_service_nginx:
+    build: ./auth-service/nginx
+    container_name: auth_service_nginx
+    restart: always
+    logging: *default-logging
+    command: ["nginx", "-g", "daemon off;"]
+    volumes:
+      - auth_service_nginx_data:/home/data
+    ports: [ "443:443" ]
+    links:
+      - auth_service_app
+
+  tests:
+    image: auth_service_image
+    container_name: auth_service_tests
+    entrypoint: >
+      sh -c "python3 /home/tests/functional/utils/wait_for_postgres.py
+      && pytest /home/tests/functional/src/"
+    links:
+      - auth_service_app
+      - auth_service_db
+    env_file:
+      - auth-service/env/.tests.env
+    logging: *default-logging
+    volumes:
+      - auth_tests_data:/home/tests
+    depends_on:
+      - auth_service_db
+      - auth_service_app
+
+volumes:
+  auth_service_nginx_data:
+    driver: local
+  auth_service_app_data:
+    driver: local
+  postgres_data:
+    driver: local
+  auth_tests_data:
+    driver: local
