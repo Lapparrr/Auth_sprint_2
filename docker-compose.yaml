@@ -7,6 +7,61 @@ x-default-logging: &default-logging
   driver: json-file
 
 services:
+  admin_service:
+    build: admin-service/app/
+    env_file:
+        - admin-service/env/.env
+    depends_on:
+      - postgres_db
+
+  postgres_db:
+    image: postgres:15.3
+    logging: *default-logging
+    env_file:
+      - admin-service/env/.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+      - ./admin-service/init_db/:/docker-entrypoint-initdb.d
+
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER}" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  content_service_elastic:
+    image: elasticsearch:8.6.2
+    environment:
+      - xpack.security.enabled=false
+      - "discovery.type=single-node"
+
+  content_service_etl:
+    build:
+      context: content-service/etl
+    env_file:
+      - content-service/env/.env
+    depends_on:
+      - postgres_db
+      - content_service_elastic
+
+  conten_service_app:
+    build:
+      context: ./content-service/app
+    env_file:
+      - content-service/env/.env
+    depends_on:
+      - content_service_elastic
+      - redis_db
+      - postgres_db
+
+
+  content-service-migration:
+    build:
+      context: content-service/migration
+    env_file:
+      - content-service/env/.env
+    depends_on:
+      - postgres_db
 
   auth_service_db:
     image: postgres:15.3
@@ -17,15 +72,13 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/
 
-
   redis_db:
     image: redis:latest
     container_name: redis
-    restart: always
     logging: *default-logging
 
   auth_service_app:
-    build: ./auth-service/app
+    build: auth-service/app
     image: auth_service_image
     container_name: auth_service_app
     volumes:
@@ -34,21 +87,21 @@ services:
     env_file:
       - auth-service/env/.env
     links:
-      - auth_service_db
+      - postgres_db
 
-  auth_service_nginx:
-    build: ./auth-service/nginx
-    container_name: auth_service_nginx
-    restart: always
+  nginx:
+    build: nginx/
+    container_name: nginx
     logging: *default-logging
     command: ["nginx", "-g", "daemon off;"]
     volumes:
       - auth_service_nginx_data:/home/data
+      - ./admin-service/app/static:/data/static/:ro
     ports: [ "443:443" ]
     links:
-      - auth_service_app
+      - postgres_db
 
-  tests:
+  auth_service_tests:
     image: auth_service_image
     container_name: auth_service_tests
     entrypoint: >
@@ -56,14 +109,14 @@ services:
       && pytest /home/tests/functional/src/"
     links:
       - auth_service_app
-      - auth_service_db
+      - postgres_db
     env_file:
       - auth-service/env/.tests.env
     logging: *default-logging
     volumes:
       - auth_tests_data:/home/tests
     depends_on:
-      - auth_service_db
+      - postgres_db
       - auth_service_app
 
 volumes:

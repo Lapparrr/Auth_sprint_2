@@ -2,7 +2,7 @@ version: '3'
 services:
 
   api:
-    build: ../../fastapi_project/
+    build: ../../app/
     image: fastapi_project
     ports:
       - "8000:8000"

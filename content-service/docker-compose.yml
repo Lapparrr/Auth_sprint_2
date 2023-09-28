@@ -12,7 +12,7 @@ services:
       POSTGRES_DB: ${DB_NAME}
   migration:
     build:
-       context: ./Migration
+       context: migration
        dockerfile: Dockerfile
     env_file:
       - .env
@@ -40,7 +40,7 @@ services:
 
   api:
     build: 
-      context: ./fastapi_project
+      context: app
     environment:
       DB_HOST: ${DB_HOST}
       DB_PORT: ${DB_PORT}

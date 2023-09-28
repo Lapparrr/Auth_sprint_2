@@ -1,7 +1,0 @@
-2023-09-20 08:08:38 INFO     [auth.py         :59   ] /login user - login: string
-2023-09-20 08:08:38 INFO     [auth.py         :62   ] /login user - login: string, found
-09-20 08:06:43 INFO     [auth.py         :47   ] /signup - user: string
-2023-09-20 08:06:43 WARNING  [auth.py         :56   ] ❌ ❌ ❌ id=UUID('8b539eed-f85e-4a48-aaab-0bb6152e52f9') login='string' password='pbkdf2:sha256:600000$77Yi4wuS5DtwhPFX$3f914153f329424f5002315bae910a4967e7d22c66bb54f393c704ce010e533c' first_name='string' last_name='string' email='user@example.com' created_at=datetime.datetime(2023, 9, 20, 7, 12, 8, 63060)
-2023-09-20 08:06:43 INFO     [auth.py         :40   ] Signup successful for login: string
-2023-09-20 08:08:09 INFO     [auth.py         :24   ] /signup - login: string
-2023-09-20 08:08:10 INFO     [auth.py         :27   ] /signup - login: string, found
