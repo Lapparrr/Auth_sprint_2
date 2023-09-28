@@ -8,6 +8,7 @@ x-default-logging: &default-logging
 
 services:
   admin_service:
+    container_name: admin_service
     build: admin-service/app/
     env_file:
         - admin-service/env/.env
@@ -15,6 +16,7 @@ services:
       - postgres_db
 
   postgres_db:
+    container_name: postgres_db
     image: postgres:15.3
     logging: *default-logging
     env_file:
@@ -30,12 +32,14 @@ services:
       retries: 5
 
   content_service_elastic:
+    container_name: content_service_elastic
     image: elasticsearch:8.6.2
     environment:
       - xpack.security.enabled=false
       - "discovery.type=single-node"
 
   content_service_etl:
+    container_name: content_service_etl
     build:
       context: content-service/etl
     env_file:
@@ -44,7 +48,8 @@ services:
       - postgres_db
       - content_service_elastic
 
-  conten_service_app:
+  content_service_app:
+    container_name: content_service_app
     build:
       context: ./content-service/app
     env_file:
@@ -56,21 +61,13 @@ services:
 
 
   content-service-migration:
+    container_name: content-service-migration
     build:
       context: content-service/migration
     env_file:
       - content-service/env/.env
     depends_on:
       - postgres_db
-
-  auth_service_db:
-    image: postgres:15.3
-    container_name: auth_service_db
-    env_file:
-      - auth-service/env/.env
-    logging: *default-logging
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
 
   redis_db:
     image: redis:latest
