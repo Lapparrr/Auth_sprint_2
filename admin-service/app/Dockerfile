@@ -1,5 +1,4 @@
-FROM python:3.10
-COPY wait-for-it.sh /usr/bin/wait-for-it.sh
+FROM python:3.11
 
 WORKDIR /opt/app
 
@@ -10,8 +9,12 @@ ENV UWSGI_THREADS 16
 ENV UWSGI_HARAKIRI 240
 ENV DJANGO_SETTINGS_MODULE 'config.settings'
 
+RUN apt update -y \
+    && apt upgrade -y \
+    && apt install -y \
+    netcat-traditional
 
-COPY wait-for-it.sh wait-for-it.sh
+COPY entrypoint.sh /home
 COPY requirements.txt  requirements.txt
 COPY uwsgi/uwsgi.ini uwsgi.ini
 
@@ -23,12 +26,12 @@ RUN  mkdir -p /var/www/static/ \
      && pip install --upgrade pip \
      && pip install -r requirements.txt
 
+
 COPY . .
 
 
 EXPOSE 8000
 
-RUN chmod ugo+x wait-for-it.sh
+RUN chmod +x /home/entrypoint.sh
 
-
-ENTRYPOINT ["./wait-for-it.sh", "-s" , "-t", "20", "db:5432", "--", "uwsgi", "--strict", "--ini", "uwsgi.ini"]
+ENTRYPOINT ["/home/entrypoint.sh"]
