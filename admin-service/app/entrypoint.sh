@@ -9,7 +9,7 @@ done
 
 echo "PG started"
 
-
+python /opt/app/manage.py migrate
 
 uwsgi --strict --ini uwsgi.ini
 
