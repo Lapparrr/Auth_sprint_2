@@ -1,1 +1,1 @@
-CREATE SCHEMA content;
+CREATE SCHEMA IF NOT EXISTS content;

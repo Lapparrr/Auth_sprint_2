@@ -32,6 +32,7 @@ COPY . .
 
 EXPOSE 8000
 
+
 RUN chmod +x /home/entrypoint.sh
 
 ENTRYPOINT ["/home/entrypoint.sh"]

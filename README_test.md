@@ -8,7 +8,7 @@ docker-compose up --build postgres_db admin_service
 ```
 запуск content-service
 ```bash
-docker-compose up --build redis content-service-migration content_service_elastic content_service_etl content_service_app postgres_db
+docker-compose up --build redis_db content-service-migration content_service_elastic content_service_etl content_service_app postgres_db
 ```
 Запуск auth-service
 ```bash

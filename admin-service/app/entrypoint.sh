@@ -9,6 +9,8 @@ done
 
 echo "PG started"
 
+
+
 uwsgi --strict --ini uwsgi.ini
 
 exec "$@"
