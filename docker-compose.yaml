@@ -34,6 +34,8 @@ services:
     environment:
       - xpack.security.enabled=false
       - "discovery.type=single-node"
+    ports:
+      - '9200:9200'
 
   content_service_etl:
     container_name: content_service_etl
