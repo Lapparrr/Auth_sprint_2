@@ -4,7 +4,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from split_settings.tools import include
 
-load_dotenv()
+load_dotenv('/Users/lappa/PycharmProjects/yandex_practicum/Auth_sprint_2/admin-service/env/.env')
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -12,9 +12,9 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 
 DEBUG = os.environ.get('DEBUG', False) == 'True'
 
-ALLOWED_HOSTS = ['127.0.0.1', '0.0.0.0', "172.21.0.2"]
+ALLOWED_HOSTS = [ '0.0.0.0', "localhost"]
 
-INTERNAL_IPS = ["127.0.0.1", '0.0.0.0', '172.21.0.2']
+INTERNAL_IPS = ['0.0.0.0', "localhost"]
 
 # Application definition
 
