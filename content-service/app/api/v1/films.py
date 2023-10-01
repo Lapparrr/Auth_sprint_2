@@ -1,19 +1,15 @@
 from http import HTTPStatus
+from typing import Optional, Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Union
 from fastapi_pagination import Page, paginate
-import logging
+from pydantic import BaseModel
 
-from services.film import FilmService, get_film_service
 from api.v1.mixin import create_page
+from services.acsess_checker import security_jwt
+from services.film import FilmService, get_film_service
 
 router = APIRouter()
-
-# class FilmParams(Params):
-#     sort: Optional[str] = ''
-#     genre: Optional[str] = ''
 
 
 class FilmParams(BaseModel):
@@ -28,11 +24,15 @@ class FilmParams(BaseModel):
     "/{film_uuid}",
 )
 async def film_by_id(
-    film_uuid: str, film_service: FilmService = Depends(get_film_service)
+        user: Annotated[dict, Depends(security_jwt)],
+        film_uuid: str,
+        film_service: FilmService = Depends(get_film_service),
 ):
     """
      Данный эндпоинт отдает фильм по uuid
     """
+    if not user:
+        raise HTTPException(status_code=403, detail='available only to registered users')
     film = await film_service.get_by_id(film_uuid)
     if not film:
         # Если фильм не найден, отдаём 404 статус
@@ -51,8 +51,9 @@ async def film_by_id(
 
 @router.get("/")
 async def sorted_films(
-    params: FilmParams = Depends(),
-    film_service: FilmService = Depends(get_film_service),
+        user: Annotated[dict, Depends(security_jwt)],
+        params: FilmParams = Depends(),
+        film_service: FilmService = Depends(get_film_service),
 ):
     """
      Данный эндпоинт отдает фильмы с сортировкой и фильтрацией по жанрам
@@ -61,6 +62,8 @@ async def sorted_films(
     - **page_number**: номер страницы
     - **page_size**: число фильмов на одной странице
     """
+    if not user:
+        raise HTTPException(status_code=403, detail='available only to registered users')
     film, total = await film_service.get_by_filter(params)
     if not film:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="film not found")
@@ -84,7 +87,9 @@ async def sorted_films(
 # Внедряем FilmService с помощью Depends(get_film_service)
 @router.get("/search/", response_model=Page)
 async def search_films(
-    query: str, film_service: FilmService = Depends(get_film_service)
+        user: Annotated[dict, Depends(security_jwt)],
+        query: str,
+        film_service: FilmService = Depends(get_film_service),
 ):
     """
      Данный эндпоинт отдает фильмы с гибким поисковиком, поиск происходит по полю title
@@ -92,6 +97,8 @@ async def search_films(
     - **page**: номер страницы
     - **size**: число фильмов на одной странице
     """
+    if not user:
+        raise HTTPException(status_code=403, detail='available only to registered users')
     fields = ["uuid", "title", "imdb_rating"]
     search_results = await film_service.search_films(query=query, fields=fields)
     return paginate(search_results)

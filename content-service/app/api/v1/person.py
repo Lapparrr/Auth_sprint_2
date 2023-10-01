@@ -3,11 +3,11 @@ from http import HTTPStatus
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi_pagination import Page, paginate
 from pydantic import BaseModel, ValidationError
-from typing import List, Optional, Dict, Union
-from models.person import PersonSearchResult
+from typing import List, Optional, Dict, Union, Annotated
+
 import logging
 
-
+from services.acsess_checker import security_jwt
 from services.person import PersonService, get_person_service
 from services.film import FilmService, get_film_service
 from api.v1.mixin import create_page
@@ -30,11 +30,15 @@ class PersonParams(BaseModel):
     "/{person_id}",
 )
 async def person_by_id(
-    person_id: str, person_service: PersonService = Depends(get_person_service)
+        user: Annotated[dict, Depends(security_jwt)],
+        person_id: str,
+        person_service: PersonService = Depends(get_person_service),
 ):
     """
      Данный эндпоинт отдает персонажей по uuid
     """
+    if not user:
+        raise HTTPException(status_code=403, detail='available only to registered users')
     person = await person_service.get_by_id(person_id)
     if not person:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="person not found")
@@ -45,13 +49,16 @@ async def person_by_id(
     "/{person_id}/films",
 )
 async def person_details(
-    person_id: str,
-    person_service: PersonService = Depends(get_person_service),
-    film_service: FilmService = Depends(get_film_service),
+        user: Annotated[dict, Depends(security_jwt)],
+        person_id: str,
+        person_service: PersonService = Depends(get_person_service),
+        film_service: FilmService = Depends(get_film_service),
 ):
     """
      Данный эндпоинт отдает персонажей по uuid
     """
+    if not user:
+        raise HTTPException(status_code=403, detail='available only to registered users')
     person = await person_service.get_by_id(person_id)
     films_data = list()
     for film in person.films:
@@ -66,14 +73,17 @@ async def person_details(
 
 @router.get("/")
 async def all_presons(
-    page_params: PersonParams = Depends(),
-    person_service: PersonService = Depends(get_person_service),
+        user: Annotated[dict, Depends(security_jwt)],
+        page_params: PersonParams = Depends(),
+        person_service: PersonService = Depends(get_person_service),
 ):
     """
      Данный эндпоинт отдает всех персонажей
     - **page_number**: номер страницы
     - **page_size**: число фильмов на одной странице
     """
+    if not user:
+        raise HTTPException(status_code=403, detail='available only to registered users')
     person, total = await person_service.get_person(page_params)
     if not person:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="person not found")
@@ -82,7 +92,9 @@ async def all_presons(
 
 @router.get("/search/", response_model=Page)
 async def search_persons(
-    query: str, person_service: PersonService = Depends(get_person_service)
+        user: Annotated[dict, Depends(security_jwt)],
+        query: str,
+        person_service: PersonService = Depends(get_person_service)
 ):
     """
      Данный эндпоинт отдает персонажей с гибким поисковиком, поиск происходит по полю full_name
@@ -90,6 +102,8 @@ async def search_persons(
     - **page**: номер страницы
     - **size**: число персонажей на одной странице
     """
+    if not user:
+        raise HTTPException(status_code=403, detail='available only to registered users')
     try:
         fields = ["uuid", "full_name", "films"]
         search_results = await person_service.search_persons(
