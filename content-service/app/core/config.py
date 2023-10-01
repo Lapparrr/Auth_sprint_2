@@ -4,11 +4,7 @@ import os
 from dotenv import load_dotenv
 
 load_dotenv()
-from pydantic import (
-    BaseSettings,
-    Field,
-)
-
+from pydantic import BaseSettings, Field
 from logging import config as logging_config
 
 from core.logger import LOGGING
@@ -23,7 +19,11 @@ class Settings(BaseSettings):
     REDIS_PORT: float = Field(..., env="REDIS_PORT")
     ELASTIC_HOST: str = Field(..., env="ES_HOST")
     ELASTIC_PORT: str = Field(..., env="ES_PORT")
+    jwt_secret_key: str = "secretfghjrtyui"
+    jwt_algorithm: str = "HS256"
 
 
 # Корень проекта
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+config = Settings()
