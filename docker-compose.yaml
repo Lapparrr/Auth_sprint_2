@@ -92,8 +92,8 @@ services:
     command: ["nginx", "-g", "daemon off;"]
     volumes:
       - auth_service_nginx_data:/home/data
-      - ./admin-service/app/static:/data/static/:ro
-    ports: [ "443:443" ]
+      - ./admin-service/app/static:/home/data/static/:ro
+    ports: [ "443:443", "80:80"]
     links:
       - postgres_db
 

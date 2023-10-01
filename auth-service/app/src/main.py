@@ -18,8 +18,8 @@ from src.settings import settings
 app = FastAPI(
     title=settings.project_name,
     version='1.0.0',
-    docs_url='/api/openapi',
-    openapi_url='/api/openapi.json',
+    docs_url='/auth/api/openapi',
+    openapi_url='/auth/api/openapi.json',
     default_response_class=ORJSONResponse,
     dependencies=[Depends(RateLimiter(times=10, seconds=25))],
 )
