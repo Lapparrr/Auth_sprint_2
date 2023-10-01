@@ -20,10 +20,9 @@ echo "PG started"
 
 alembic upgrade head
 
-python cli.py create-role registered default_registered_user
 python cli.py create-role admin admin
-python cli.py create-user $ROOT_LOGIN $ROOT_PASSWORD $ROOT_EMAIL $ROOT_FIRST_NAME $ROOT_LAST_NAME
-python cli.py add-role $ROOT_LOGIN admin
+python cli.py create-role registered default_registered_user
+python cli.py create-user $ROOT_LOGIN $ROOT_PASSWORD $ROOT_EMAIL $ROOT_FIRST_NAME $ROOT_LAST_NAME admin
 
 
 gunicorn -w 4 -k uvicorn.workers.UvicornWorker -b 0.0.0.0:8000 main:app

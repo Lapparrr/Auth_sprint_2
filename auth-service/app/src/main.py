@@ -13,6 +13,7 @@ from sqlmodel.ext.asyncio.session import AsyncEngine
 from src.api.v1 import auth, permission, role, user
 from src.core.logger import LOGGING
 from src.db import redis, postgres
+from src.services.dependencies import get_current_user_global
 from src.settings import settings
 
 app = FastAPI(
@@ -55,9 +56,17 @@ async def shutdown():
 
 
 app.include_router(auth.router, prefix='/auth/api/v1/auth')
-app.include_router(permission.router, prefix='/auth/api/v1/permission')
-app.include_router(role.router, prefix='/auth/api/v1/role')
-app.include_router(user.router, prefix='/auth/api/v1/user')
+app.include_router(
+    permission.router,
+    prefix='/auth/api/v1/permission',
+    dependencies=[Depends(get_current_user_global)]
+)
+app.include_router(
+    role.router, prefix='/auth/api/v1/role', dependencies=[Depends(get_current_user_global)]
+)
+app.include_router(
+    user.router, prefix='/auth/api/v1/user', dependencies=[Depends(get_current_user_global)]
+)
 
 
 if __name__ == '__main__':

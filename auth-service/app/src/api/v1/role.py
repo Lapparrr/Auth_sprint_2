@@ -3,19 +3,18 @@ from http import HTTPStatus
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.security import OAuth2PasswordBearer
 from fastapi_pagination import Page
 
+from src.api.v1.schemas.auth import AuthRequest
 from src.api.v1.schemas.user import UserResponse
 from src.models.data import RoleCreate, UserRole
-from src.models.role import Role
+from src.models.role import Role, RoleEnum
 from src.models.user import User
+from src.services.dependencies import roles_required
 from src.services.role import RoleService, role_services
 from src.services.user import UserService, users_services
 
 router = APIRouter()
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="v1/auth/token")
 
 
 @router.post(
@@ -26,8 +25,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="v1/auth/token")
     summary="Создать роль",
     response_model=Role,
 )
+@roles_required(roles_list=[RoleEnum.ADMIN])
 async def create_role(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    request: AuthRequest,
     role: RoleCreate,
     service: RoleService = Depends(role_services),
 ) -> Role:
@@ -45,18 +45,19 @@ async def create_role(
     summary="Список ролей",
     response_model=Page[Role],
 )
+@roles_required(roles_list=[RoleEnum.ADMIN])
 async def get_role(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    request: AuthRequest,
     page: int = Query(1),
     items_per_page: int = Query(10),
-    service: RoleService = Depends(role_services),
+    service: RoleService = Depends(role_services)
 ) -> Page[Role]:
     result = await service.get_roles()
     if not result:
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail='Role not exist')
     skip_pages = page - 1
     return Page(
-        items=result[skip_pages : skip_pages + items_per_page],
+        items=result[skip_pages: skip_pages + items_per_page],
         total=len(result),
         page=page,
         size=items_per_page,
@@ -70,8 +71,9 @@ async def get_role(
     description='Delete Roles',
     summary="Удалить роль",
 )
+@roles_required(roles_list=[RoleEnum.ADMIN])
 async def delete_role(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    request: AuthRequest,
     role_id: Annotated[uuid.UUID, Query()],
     service: RoleService = Depends(role_services),
 ) -> None:
@@ -91,8 +93,9 @@ async def delete_role(
     summary="Назначить роль user",
     response_model=UserResponse,
 )
+@roles_required(roles_list=[RoleEnum.ADMIN])
 async def user_set_role(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    request: AuthRequest,
     user_role: UserRole,
     role_service: RoleService = Depends(role_services),
     user_service: UserService = Depends(users_services),
@@ -118,8 +121,9 @@ async def user_set_role(
     summary="Удалить роль у пользователя user",
     response_model=UserResponse,
 )
+@roles_required(roles_list=[RoleEnum.ADMIN])
 async def user_delete_role(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    request: AuthRequest,
     user_role: UserRole,
     role_service: RoleService = Depends(role_services),
     user_service: UserService = Depends(users_services),

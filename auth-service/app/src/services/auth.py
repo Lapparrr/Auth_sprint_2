@@ -12,15 +12,16 @@ from src.core.config import logger
 from src.db.postgres import get_session
 from src.db.redis import get_redis
 from src.models.data import UserSingUp, UserLogin
-from src.models.role import Role
+from src.models.role import Role, RoleEnum
 from src.models.user import User
 from src.settings import settings
 
 
-class AuthServiceBase:
-    def __init__(self, redis: Redis, pg: AsyncSession):
+class AuthService:
+    def __init__(self, redis: Redis, pg: AsyncSession, auth: AuthJWT):
         self.redis = redis
         self.pg = pg
+        self.auth = auth
 
     async def get_by_login(self, login: str) -> User | None:
         result = await self.pg.execute(
@@ -31,22 +32,21 @@ class AuthServiceBase:
 
     async def get_by_mail(self, mail: str) -> User | None:
         result = await self.pg.execute(
-            select(User).where(User.email == mail).options(selectinload(User.roles))
-        )
+            select(User).where(User.email == mail).options(selectinload(User.roles)))
         user_found = result.scalars().first()
         return user_found if user_found else None
 
     async def check_password(self, user: UserLogin) -> bool:
-        print(f'🔴️️ User.password {user.password}')
         result = await self.pg.execute(
             select(User.password).where(User.email == user.email)
         )
         password_hash = result.scalars().first()
         result = check_password_hash(password_hash, user.password)
-        print(f'🔴️️ result {result}')
         return bool(result)
 
-    async def add_user(self, user: UserSingUp) -> User:
+    async def add_user(
+        self, user: UserSingUp, role_name: str | None = None
+    ) -> User:
         hashed_pwd = generate_password_hash(user.password)
         logger.info(f"/signup - user: {user.login}")
         user_signup = User(
@@ -59,26 +59,17 @@ class AuthServiceBase:
         # TODO history
         logger.warning(f'❌ ❌ ❌ {user_signup}')
 
-        user_role = await self.pg.execute(select(Role).where(Role.name == "registered"))
-        user_role = user_role.scalars().first()
+        if role_name:
+            user_role = await self.pg.execute(select(Role).where(Role.name == role_name))
+            user_role = user_role.scalars().first()
+            user_signup.roles.append(user_role)
 
-        user_signup.roles.append(user_role)
         self.pg.add(user_signup)
         await self.pg.commit()
         return user_signup
 
     async def add_jwt_to_redis(self, jwt_val: str):
         await self.redis.set(jwt_val, "true", settings.access_expires)
-
-    async def check_token_is_expired(self, login: str, jwt_val: str) -> bool:
-        result = self.redis.get(f'{login}::{jwt_val}')
-        return bool(result)
-
-
-class AuthService(AuthServiceBase):
-    def __init__(self, redis: Redis, pg: AsyncSession, auth: AuthJWT):
-        super().__init__(redis, pg)
-        self.auth = auth
 
     async def revoke_both_tokens(self) -> None:
         refresh_jti = (await self.auth.get_raw_jwt()).get('refresh_jti')
@@ -101,13 +92,9 @@ class AuthService(AuthServiceBase):
         )
         return refresh_token
 
-
-@lru_cache()
-def get_auth_service_base(
-    redis: Redis = Depends(get_redis),
-    pg: AsyncSession = Depends(get_session),
-) -> AuthServiceBase:
-    return AuthServiceBase(redis, pg)
+    async def check_token_is_expired(self, login: str, jwt_val: str) -> bool:
+        result = self.redis.get(f'{login}::{jwt_val}')
+        return bool(result)
 
 
 @lru_cache()

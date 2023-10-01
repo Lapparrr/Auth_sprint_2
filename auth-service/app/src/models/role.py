@@ -1,10 +1,17 @@
 import uuid as uuid_pkg
+from enum import Enum, StrEnum
 from typing import List
 
 from sqlmodel import SQLModel, Field, Relationship
 from src.models.role_permission import RolePermission
 from src.models.permission import Permission
 from src.models.user_roles import UserRoles
+
+
+class RoleEnum(StrEnum):
+    ADMIN = "admin"
+    REGISTERED = "registered"
+    SUBSCRIBER = "subscriber"
 
 
 class Role(SQLModel, table=True):
