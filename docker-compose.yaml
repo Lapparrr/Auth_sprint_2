@@ -1,0 +1,126 @@
+version: "3.9"
+
+x-default-logging: &default-logging
+  options:
+    max-size: '10m'
+    max-file: '3'
+  driver: json-file
+
+services:
+  admin_service:
+    container_name: admin_service
+    build: admin-service/app/
+    env_file:
+        - admin-service/env/.env
+    depends_on:
+      - postgres_db
+
+  postgres_db:
+    container_name: postgres_db
+    image: postgres:13
+    logging: *default-logging
+    env_file:
+      -  admin-service/env/.env
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+      - ./admin-service/init_db/:/docker-entrypoint-initdb.d
+
+
+  content_service_elastic:
+    container_name: content_service_elastic
+    image: elasticsearch:8.6.2
+    environment:
+      - xpack.security.enabled=false
+      - "discovery.type=single-node"
+    ports:
+      - '9200:9200'
+
+  content_service_etl:
+    container_name: content_service_etl
+    build:
+      context: content-service/etl
+    env_file:
+      - content-service/env/.env
+    depends_on:
+      - postgres_db
+      - content_service_elastic
+
+  content_service_app:
+    container_name: content_service_app
+    build:
+      context: ./content-service/app
+    env_file:
+      - content-service/env/.env
+    depends_on:
+      - content_service_elastic
+      - redis_db
+      - postgres_db
+
+
+  content-service-migration:
+    container_name: content-service-migration
+    build:
+      context: content-service/migration
+    env_file:
+      - content-service/env/.env
+    depends_on:
+      - postgres_db
+
+  redis_db:
+    image: redis:latest
+    container_name: redis
+    logging: *default-logging
+
+  auth_service_app:
+    build: auth-service/app
+    image: auth_service_image
+    container_name: auth_service_app
+    volumes:
+      - auth_service_app_data:/home/data
+      - ./auth-service/app/src:/home/src
+    env_file:
+      - auth-service/env/.env
+    links:
+      - postgres_db
+
+  nginx:
+    build: nginx/
+    container_name: nginx
+    logging: *default-logging
+    command: ["nginx", "-g", "daemon off;"]
+    volumes:
+      - auth_service_nginx_data:/home/data
+      - ./admin-service/app/static:/home/data/static/:ro
+    ports: [ "443:443", "80:80"]
+    links:
+      - postgres_db
+
+  auth_service_tests:
+    image: auth_service_image
+    container_name: auth_service_tests
+    entrypoint: >
+      sh -c "python3 /home/tests/functional/utils/wait_for_postgres.py
+      && pytest /home/tests/functional/src/"
+    links:
+      - auth_service_app
+      - postgres_db
+    env_file:
+      - auth-service/env/.tests.env
+    logging: *default-logging
+    volumes:
+      - auth_tests_data:/home/tests
+    depends_on:
+      - postgres_db
+      - auth_service_app
+
+volumes:
+  auth_service_nginx_data:
+    driver: local
+  auth_service_app_data:
+    driver: local
+  postgres_data:
+    driver: local
+  auth_tests_data:
+    driver: local
