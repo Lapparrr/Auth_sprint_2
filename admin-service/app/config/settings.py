@@ -55,6 +55,14 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
+AUTH_API_LOGIN_URL = os.environ.get('AUTH_API_LOGIN_URL')
+
+AUTH_USER_MODEL = "models.User"
+
+AUTHENTICATION_BACKENDS = [
+    'users.auth.CustomBackend',
+]
+
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',

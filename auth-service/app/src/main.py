@@ -54,10 +54,10 @@ async def shutdown():
     await redis.redis.close()
 
 
-app.include_router(auth.router, prefix='/api/v1/auth')
-app.include_router(permission.router, prefix='/api/v1/permission')
-app.include_router(role.router, prefix='/api/v1/role')
-app.include_router(user.router, prefix='/api/v1/user')
+app.include_router(auth.router, prefix='/auth/api/v1/auth')
+app.include_router(permission.router, prefix='/auth/api/v1/permission')
+app.include_router(role.router, prefix='/auth/api/v1/role')
+app.include_router(user.router, prefix='/auth/api/v1/user')
 
 
 if __name__ == '__main__':

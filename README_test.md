@@ -12,9 +12,13 @@ docker-compose up --build redis_db content-service-migration content_service_ela
 ```
 Запуск auth-service
 ```bash
-docker-compose up --build auth_service_app postgres_db redis_db
+docker-compose up --build nginx auth_service_app postgres_db redis_db
 ```
 Запуск nginx
 ```bash
 docker-compose up --build nginx
 ```
+
+http://0.0.0.0/admin/
+http://0.0.0.0/auth/api/openapi
+http://0.0.0.0/api/openapi
