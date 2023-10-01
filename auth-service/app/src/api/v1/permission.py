@@ -3,15 +3,16 @@ from http import HTTPStatus
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.security import OAuth2PasswordBearer
 from fastapi_pagination import Page
 
+from src.api.v1.schemas.auth import AuthRequest
 from src.models.data import PermissionCreate
 from src.models.permission import Permission
+from src.models.role import RoleEnum
+from src.services.dependencies import roles_required
 from src.services.permission import PermissionService, permission_services
 
 router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="v1/auth/token")
 
 
 @router.post(
@@ -22,8 +23,9 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="v1/auth/token")
     summary="Создать разрешение",
     response_model=Permission,
 )
+@roles_required(roles_list=[RoleEnum.ADMIN])
 async def create_permission(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    request: AuthRequest,
     permission: PermissionCreate,
     service: PermissionService = Depends(permission_services),
 ) -> Permission:
@@ -46,7 +48,9 @@ async def create_permission(
     description='List Permissions',
     summary="Список разрешений",
 )
+@roles_required(roles_list=[RoleEnum.ADMIN])
 async def get_permission(
+    request: AuthRequest,
     page: int = Query(1),
     items_per_page: int = Query(10),
     service: PermissionService = Depends(permission_services),
@@ -54,7 +58,7 @@ async def get_permission(
     result = await service.get_permissions()
     skip_pages = page - 1
     return Page(
-        items=result[skip_pages : skip_pages + items_per_page],
+        items=result[skip_pages: skip_pages + items_per_page],
         total=len(result),
         page=page,
         size=items_per_page,
@@ -68,8 +72,9 @@ async def get_permission(
     description='Delete Permission',
     summary="Удалить разрешение",
 )
+@roles_required(roles_list=[RoleEnum.ADMIN])
 async def delete_permission(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    request: AuthRequest,
     permission_id: Annotated[uuid.UUID, Query()],
     service: PermissionService = Depends(permission_services),
 ) -> None:

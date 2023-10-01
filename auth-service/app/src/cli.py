@@ -27,8 +27,9 @@ def create_user(
     email: str,
     first_name: Annotated[Optional[str], typer.Argument()] = 'Admin',
     last_name: Annotated[Optional[str], typer.Argument()] = 'Super',
+    role: Annotated[Optional[str], typer.Argument()] = None,
 ):
-    asyncio.run(create_user_async(login, password, email, first_name, last_name))
+    asyncio.run(create_user_async(login, password, email, first_name, last_name, role))
 
 
 async def create_user_async(
@@ -37,6 +38,7 @@ async def create_user_async(
     email: str,
     first_name: str = 'Admin',
     last_name: str = 'Super',
+    role: str = None,
 ):
     """
     Create a new user with USERNAME.
@@ -56,20 +58,8 @@ async def create_user_async(
     if await auth_service.get_by_login(login):
         logging.warning('User has already been created')
     else:
-        user = await auth_service.add_user(user)
-
-
-@app.command()
-def add_role(login: str, role: str):
-    asyncio.run(add_role_async(login, role))
-
-
-async def add_role_async(login, role):
-    async_session_role = get_session()
-    role_service = role_services(await async_session_role.__anext__())
-    user = await role_service.get_by_login(login)
-    role_in_db = await role_service.get_role_by_name(role)
-    await role_service.set_user_role(user, role_in_db)
+        await auth_service.add_user(user, role)
+        logging.info(f'User {login} created')
 
 
 @app.command()
@@ -83,6 +73,24 @@ async def create_role_async(name: str, description: str):
         logging.log(logging.WARNING, "Role has already been created")
     else:
         await role_service.create_role(name, description)
+
+
+@app.command()
+def set_role(login: str, role: str):
+    asyncio.run(set_role_async(login, role))
+
+
+async def set_role_async(login: str, role: str):
+    role_service = role_services([item async for item in get_session()][0])
+    user_service = users_services(pg=[item async for item in get_session()][0])
+    role = await role_service.get_role_by_name(role)
+    user = await user_service.get_user(login)
+    if not role:
+        logging.log(logging.ERROR, "Role not found")
+    elif not user:
+        logging.log(logging.ERROR, "User not found")
+    else:
+        await role_service.set_user_role(user, role)
 
 
 if __name__ == "__main__":

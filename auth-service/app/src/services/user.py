@@ -36,14 +36,6 @@ class UserService:
         user_found = result.scalars().first()
         return user_found if user_found else None
 
-    async def authenticate_user(self, login: str, password: str):
-        user = await self.get_user(login=login)
-        if not user:
-            return False
-        # if not AuthService().check_password(password, user.hashed_password):
-        #     return False
-        return user
-
 
 @lru_cache()
 def users_services(

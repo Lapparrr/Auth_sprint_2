@@ -1,7 +1,9 @@
 import uuid
-from typing import Optional
+from typing import Optional, List
 
 from pydantic import BaseModel, EmailStr
+
+from src.models.role import Role
 
 
 class UserSingUp(BaseModel):
@@ -18,6 +20,7 @@ class UserSingUp(BaseModel):
 class UserInDb(BaseModel):
     login: str
     email: str
+    roles: List[Role] = []
 
     class Config:
         orm_mode = True
