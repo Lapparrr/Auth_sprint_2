@@ -24,12 +24,14 @@ class CustomBackend(BaseBackend):
             user.email = data.get('email')
             user.first_name = data.get('first_name')
             user.last_name = data.get('last_name')
-            user.is_admin = data.get('role') == Roles.ADMIN
-            user.is_active = data.get('is_active')
+            user.is_admin = False
+            for values in data.get('roles'):
+                if values['name'] == 'admin':
+                    user.is_admin = True
+            user.is_active = True
             user.save()
         except Exception:
             return None
-
         return user
 
     def get_user(self, user_id):

@@ -55,12 +55,13 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'config.wsgi.application'
 
-AUTH_API_LOGIN_URL = os.environ.get('AUTH_API_LOGIN_URL')
+AUTH_API_LOGIN_URL = 'http://auth_service_app:8000/auth/api/v1/auth/sync'
 
-AUTH_USER_MODEL = "models.User"
+AUTH_USER_MODEL = "movies.User"
 
 AUTHENTICATION_BACKENDS = [
     'users.auth.CustomBackend',
+    # 'django.contrib.auth.backends.ModelBackend',
 ]
 
 AUTH_PASSWORD_VALIDATORS = [
