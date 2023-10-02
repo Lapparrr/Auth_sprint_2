@@ -84,8 +84,10 @@ class UserRole(BaseModel):
         orm_mode = True
 
 
-class YandexUserData(BaseModel):
-    default_email: EmailStr
-    first_name: str
-    last_name: str
-    login: str
+class OAuthUserData(BaseModel):
+    email: Optional[EmailStr] = None
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    login: Optional[str] = None
+    social_id: str
+    social_name: str

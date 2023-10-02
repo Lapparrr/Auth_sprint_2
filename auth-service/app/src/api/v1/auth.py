@@ -12,7 +12,7 @@ from src.models.role import RoleEnum
 from src.models.user import User
 from src.services.auth import AuthService, get_auth_service
 from src.services.dependencies import roles_required, get_current_user_global
-from src.services.yandex import YandexProvider, yandex_provider_service
+from src.services.oauth import YandexProvider, yandex_provider_service, BaseProvider
 
 router = APIRouter()
 
@@ -172,34 +172,42 @@ async def register(
 
 
 @router.get(
-    '/login/yandex',
+    '/login/{provider_name}',
     status_code=HTTPStatus.OK,
     tags=['oauth'],
     description='Login yandex',
     summary="Авторизация пользователя через yandex",
 )
-async def login_yandex(
-    yandex_provider: YandexProvider = Depends(yandex_provider_service)
+async def login_oauth(
+    provider_name: str,
 ):
-    return RedirectResponse(yandex_provider.get_auth_url())
+    provider = BaseProvider.get_provider(provider_name)
+    if not provider:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail='Provider not found'
+        )
+    return RedirectResponse(provider.get_auth_url())
 
 
 @router.post(
-    '/login/yandex/redirect',
+    '/login/redirect',
     status_code=HTTPStatus.OK,
     tags=['oauth'],
     description='Login yandex redirect',
     summary="Авторизация пользователя через yandex",
     response_model=LoginResponse,
 )
-async def login_yandex(
+async def login_redirect(
     code: int,
     request: Request,
     yandex_provider: YandexProvider = Depends(yandex_provider_service),
     auth_service: AuthService = Depends(get_auth_service),
 ) -> LoginResponse:
-    user_data = await yandex_provider.get_user_data(code)
-    user = await auth_service.auth_by_yandex(user_data)
+    if "https://oauth.yandex.ru/" in request.headers.get("Referer"):
+        user_data = await yandex_provider.get_user_data(code)
+
+    user = await auth_service.auth_by_oauth(user_data)
 
     refresh_token = await auth_service.create_refresh_token(user.email)
     refresh_jti = await auth_service.auth.get_jti(refresh_token)
