@@ -17,7 +17,7 @@ Werkzeug==2.3.6
 pydantic[email]
 pytest==7.4.0
 pytest-asyncio==0.21.1
-httpx==0.24.1
+httpx==0.23.3
 python-dotenv==1.0.0
 typer==0.9.0
 fastapi-limiter==0.1.5
@@ -27,3 +27,6 @@ opentelemetry-api==1.17.0
 opentelemetry-sdk==1.17.0
 opentelemetry-instrumentation-fastapi==0.38b0
 opentelemetry-exporter-jaeger==1.17.0
+yandex-oauth==1.1.2
+yandexid==0.3.1
+

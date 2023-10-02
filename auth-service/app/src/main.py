@@ -6,6 +6,7 @@ from fastapi import FastAPI, Depends, Request, status
 from fastapi.responses import ORJSONResponse
 from fastapi_limiter import FastAPILimiter
 from fastapi_limiter.depends import RateLimiter
+from fastapi.middleware.cors import CORSMiddleware
 from redis.asyncio import Redis
 from sqlmodel import create_engine
 from sqlmodel.ext.asyncio.session import AsyncEngine
@@ -16,6 +17,14 @@ from src.db import redis, postgres
 from src.services.dependencies import get_current_user_global
 from src.settings import settings
 
+
+origins = [
+    "http://localhost",
+    "http://localhost:8080",
+    "https://oauth.yandex.ru",
+    "https://oauth.yandex.ru/authorize?"
+]
+
 app = FastAPI(
     title=settings.project_name,
     version='1.0.0',
@@ -23,6 +32,14 @@ app = FastAPI(
     openapi_url='/auth/api/openapi.json',
     default_response_class=ORJSONResponse,
     dependencies=[Depends(RateLimiter(times=10, seconds=25))],
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
