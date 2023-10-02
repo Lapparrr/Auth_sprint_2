@@ -1,8 +1,8 @@
 from http import HTTPStatus
 
 from async_fastapi_jwt_auth.exceptions import RevokedTokenError
-from fastapi import APIRouter, Depends, HTTPException
-from starlette.responses import Response
+from fastapi import APIRouter, Depends, HTTPException, Request
+from starlette.responses import Response, RedirectResponse
 
 from src.api.v1.schemas.auth import LoginResponse, AuthRequest
 from src.api.v1.schemas.user import UserResponse
@@ -11,7 +11,8 @@ from src.models.data import UserSingUp, UserLogin
 from src.models.role import RoleEnum
 from src.models.user import User
 from src.services.auth import AuthService, get_auth_service
-from src.services.dependencies import roles_required, get_current_user_global, JWTBearer
+from src.services.dependencies import roles_required, get_current_user_global
+from src.services.yandex import YandexProvider, yandex_provider_service
 
 router = APIRouter()
 
@@ -169,3 +170,44 @@ async def register(
         raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail='User not admin')
     return user_found
 
+
+@router.get(
+    '/login/yandex',
+    status_code=HTTPStatus.OK,
+    tags=['oauth'],
+    description='Login yandex',
+    summary="Авторизация пользователя через yandex",
+)
+async def login_yandex(
+    yandex_provider: YandexProvider = Depends(yandex_provider_service)
+):
+    return RedirectResponse(yandex_provider.get_auth_url())
+
+
+@router.post(
+    '/login/yandex/redirect',
+    status_code=HTTPStatus.OK,
+    tags=['oauth'],
+    description='Login yandex redirect',
+    summary="Авторизация пользователя через yandex",
+    response_model=LoginResponse,
+)
+async def login_yandex(
+    code: int,
+    request: Request,
+    yandex_provider: YandexProvider = Depends(yandex_provider_service),
+    auth_service: AuthService = Depends(get_auth_service),
+) -> LoginResponse:
+    user_data = await yandex_provider.get_user_data(code)
+    user = await auth_service.auth_by_yandex(user_data)
+
+    refresh_token = await auth_service.create_refresh_token(user.email)
+    refresh_jti = await auth_service.auth.get_jti(refresh_token)
+    access_token = await auth_service.create_access_token(
+        payload=user.email,
+        user_claims={
+            "refresh_jti": refresh_jti,
+            "roles": [role.name for role in user.roles],
+        }
+    )
+    return LoginResponse(access_token=access_token, refresh_token=refresh_token)

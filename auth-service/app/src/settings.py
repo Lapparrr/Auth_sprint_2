@@ -20,6 +20,10 @@ class Settings(BaseSettings):
     access_expires: int = 900  # 15 min
     refresh_expires: int = 1800  # 30 min
 
+    yandex_client_id: str = ...
+    yandex_client_secret: str = ...
+    yandex_redirect_uri: str = ...
+
     def pg_url(self):
         return f'postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}'
 

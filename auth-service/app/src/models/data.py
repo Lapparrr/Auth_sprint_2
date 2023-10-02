@@ -82,3 +82,10 @@ class UserRole(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class YandexUserData(BaseModel):
+    default_email: EmailStr
+    first_name: str
+    last_name: str
+    login: str

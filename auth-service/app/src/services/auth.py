@@ -11,9 +11,10 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from src.core.config import logger
 from src.db.postgres import get_session
 from src.db.redis import get_redis
-from src.models.data import UserSingUp, UserLogin
+from src.models.data import UserSingUp, UserLogin, YandexUserData
 from src.models.role import Role, RoleEnum
 from src.models.user import User
+from src.services.utils import generate_random_string
 from src.settings import settings
 
 
@@ -95,6 +96,16 @@ class AuthService:
     async def check_token_is_expired(self, login: str, jwt_val: str) -> bool:
         result = self.redis.get(f'{login}::{jwt_val}')
         return bool(result)
+
+    async def auth_by_yandex(self, user_data: YandexUserData) -> User:
+        user = await self.get_by_mail(user_data.default_email)
+        if not user:
+            user_for_create = UserSingUp(
+                password=generate_random_string(),
+                **user_data.dict(),
+            )
+            user = await self.add_user(user_for_create, role_name=RoleEnum.REGISTERED)
+        return user
 
 
 @lru_cache()
