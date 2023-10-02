@@ -16,6 +16,9 @@ from src.core.logger import LOGGING
 from src.db import redis, postgres
 from src.services.dependencies import get_current_user_global
 from src.settings import settings
+from src.tracer import configure_tracer
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+
 
 
 origins = [
@@ -41,6 +44,10 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+configure_tracer()
+FastAPIInstrumentor.instrument_app(app)
 
 
 @app.middleware('http')
