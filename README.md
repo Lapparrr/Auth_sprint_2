@@ -6,7 +6,7 @@ __________
 1. Заполнить все енв файлы в папках сервисов(admin, content и auth)
 2. Запустить команду
 ```bash
-docker-compose up -d --build --force-recreate
+docker compose up -d --build --force-recreate
 ```
 Документация по API
 1. http://0.0.0.0/auth/api/openapi - auth-service
