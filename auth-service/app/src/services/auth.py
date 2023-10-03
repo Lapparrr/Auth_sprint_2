@@ -11,18 +11,26 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from src.core.config import logger
 from src.db.postgres import get_session
 from src.db.redis import get_redis
-from src.models.data import UserSingUp, UserLogin, YandexUserData
+from src.models.data import UserSingUp, UserLogin, OAuthUserData
 from src.models.role import Role, RoleEnum
 from src.models.user import User
-from src.services.utils import generate_random_string
+from src.services.social_account import SocialAccountService, social_account_services
+from src.services.utils import generate_random_string, generate_random_email
 from src.settings import settings
 
 
 class AuthService:
-    def __init__(self, redis: Redis, pg: AsyncSession, auth: AuthJWT):
+    def __init__(
+        self,
+        redis: Redis,
+        pg: AsyncSession,
+        auth: AuthJWT,
+        social_account: SocialAccountService,
+    ) -> None:
         self.redis = redis
         self.pg = pg
         self.auth = auth
+        self.social_account = social_account
 
     async def get_by_login(self, login: str) -> User | None:
         result = await self.pg.execute(
@@ -86,8 +94,10 @@ class AuthService:
         return access_token
 
     async def create_refresh_token(
-        self, payload: str, user_claims: Optional[dict] = {}
+        self, payload: str, user_claims: Optional[dict] = None
     ):
+        if user_claims is None:
+            user_claims = {}
         refresh_token = await self.auth.create_refresh_token(
             payload, user_claims=user_claims
         )
@@ -97,14 +107,22 @@ class AuthService:
         result = self.redis.get(f'{login}::{jwt_val}')
         return bool(result)
 
-    async def auth_by_yandex(self, user_data: YandexUserData) -> User:
-        user = await self.get_by_mail(user_data.default_email)
-        if not user:
-            user_for_create = UserSingUp(
-                password=generate_random_string(),
-                **user_data.dict(),
-            )
-            user = await self.add_user(user_for_create, role_name=RoleEnum.REGISTERED)
+    async def auth_by_oauth(self, user_data: OAuthUserData) -> User:
+        social_account = self.social_account.get_social_account(
+            social_id=user_data.social_id, social_name=user_data.social_name
+        )
+
+        if social_account:
+            return social_account.user
+
+        user_for_create = UserSingUp(
+            password=generate_random_string(),
+            email=user_data.email or generate_random_email(),
+            first_name=user_data.first_name,
+            last_name=user_data.last_name,
+            login=user_data.login
+        )
+        user = await self.add_user(user_for_create, role_name=RoleEnum.REGISTERED)
         return user
 
 
@@ -113,5 +131,6 @@ def get_auth_service(
     redis: Redis = Depends(get_redis),
     pg: AsyncSession = Depends(get_session),
     auth: AuthJWT = Depends(),
+    social_account: SocialAccountService = Depends(social_account_services),
 ) -> AuthService:
-    return AuthService(redis, pg, auth)
+    return AuthService(redis, pg, auth, social_account)

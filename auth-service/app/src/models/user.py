@@ -25,6 +25,7 @@ class User(SQLModel, table=True):
     created_at: datetime.datetime = datetime.datetime.now()
 
     roles: List[Role] = Relationship(back_populates="users", link_model=UserRoles)
+    social_accounts: List["SocialAccount"] = Relationship(back_populates="user")
 
     def __repr__(self) -> str:
         return f'<User {self.login}>'
